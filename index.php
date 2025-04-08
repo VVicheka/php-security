@@ -34,31 +34,6 @@
     }
 ?>
 
-<?php
-    $db = new PDO('mysql:host=127.0.0.1;dbname=php_security', 'root', '');
-
-    session_start();
-
-    if (isset($_POST['email'])) {
-        $email = $_POST['email'];
-        $password = $_POST['password'];
-
-        // Prepare the SQL statement to prevent SQL injection
-        $stmt = $db->prepare("SELECT * FROM user WHERE email = :email AND password = :password");
-        $stmt->bindParam(':email', $email);
-        $stmt->bindParam(':password', $password);
-        $stmt->execute();
-
-        // Check if a user was found
-        if ($stmt->rowCount() > 0) {
-            $_SESSION['logged_in'] = true;
-            $_SESSION['email'] = $email;
-        } else {
-            echo "Invalid email or password.";
-        }
-    }
-?>
-
 <html>
 <head>
     <title>File Upload and Management</title>
