@@ -14,6 +14,11 @@
         
         // Remove . and .. from the list
         $files = array_diff($files, array('.', '..'));
+
+        // Sort files by modification time (oldest to newest)
+        usort($files, function ($a, $b) use ($target_dir) {
+            return filemtime($target_dir . $a) - filemtime($target_dir . $b);
+        });
         
         if (count($files) > 0) {
             foreach ($files as $file) {
