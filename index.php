@@ -1,5 +1,10 @@
 <?php
-    $db = new PDO('mysql:host=127.0.0.1;dbname=php_security', 'root', '');
+    try {
+        $db = new PDO('mysql:host=127.0.0.1;dbname=php_security', 'root', '');
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (PDOException $e) {
+        die("Database connection failed: " . $e->getMessage());
+    }
 
     session_start();
 
@@ -7,27 +12,25 @@
         $email = $_POST['email'];
         $password = $_POST['password'];
 
-        // // Vulnerable to SQL injection
-        // $query = "SELECT * FROM user WHERE email = '$email' AND password = '$password'";
-        // $result = $db->query($query);
-
-        // if ($result && $result->rowCount() > 0) {
-        //     echo "Login successful! Welcome, " . htmlspecialchars($email) . "!";
-        // } else {
-        //     echo "Invalid email or password.";
-        // }
-        // Injection sql: Email: ' OR '1'='1, Password: ' OR '1'='1
-
-        // Prepare the SQL statement to prevent SQL injection
-        $stmt = $db->prepare("SELECT * FROM user WHERE email = :email AND password = :password");
+        // Use secure password verification with the user table
+        $stmt = $db->prepare("SELECT id, email, password FROM user WHERE email = :email");
         $stmt->bindParam(':email', $email);
-        $stmt->bindParam(':password', $password);
         $stmt->execute();
 
         // Check if a user was found
         if ($stmt->rowCount() > 0) {
-            $_SESSION['logged_in'] = true;
-            $_SESSION['email'] = $email;
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Verify password
+            // For now, we'll use a direct comparison since you haven't implemented hashing yet
+            // In production, use: if (password_verify($password, $user['password']))
+            if ($password === $user['password']) {  // ONLY FOR DEVELOPMENT - change to password_verify in production
+                $_SESSION['logged_in'] = true;
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['email'] = $user['email'];
+            } else {
+                echo "<p class='error-message'>Invalid email or password.</p>";
+            }
         } else {
             echo "<p class='error-message'>Invalid email or password.</p>";
         }

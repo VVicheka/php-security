@@ -1,22 +1,52 @@
 <?php
-// Get the image path from the query parameter
-if (!isset($_GET['img']) || empty($_GET['img'])) {
+// image_viewer.php - Enhanced version
+session_start();
+
+// Check if user is logged in
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     header("Location: index.php");
     exit;
 }
 
-$image_path = $_GET['img'];
+// Get the image filename from the query parameter
+if (!isset($_GET['file']) || empty($_GET['file'])) {
+    header("Location: index.php");
+    exit;
+}
 
-// Basic security check to ensure the path is within the uploads directory
-if (strpos($image_path, 'uploads/') !== 0 || !file_exists($image_path)) {
+$filename = $_GET['file'];
+
+// Connect to database to verify the file belongs to the current user
+try {
+    $db = new PDO('mysql:host=127.0.0.1;dbname=php_security', 'root', '');
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
+    // Prepare a statement to check if the file exists and belongs to the current user
+    $stmt = $db->prepare("SELECT * FROM uploaded_files WHERE filename = :filename AND user_id = :user_id");
+    $stmt->bindParam(':filename', $filename);
+    $stmt->bindParam(':user_id', $_SESSION['user_id'], PDO::PARAM_INT);
+    $stmt->execute();
+    
+    if ($stmt->rowCount() === 0) {
+        // File doesn't exist or doesn't belong to this user
+        header("Location: index.php");
+        exit;
+    }
+    
+    $file_info = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+} catch (PDOException $e) {
+    // Log the error, don't expose it to users
+    error_log("Database error: " . $e->getMessage());
     header("Location: index.php");
     exit;
 }
 ?>
 
 <!DOCTYPE html>
+<html>
 <head>
-    <title>Image Viewer</title>
+    <title>Image Viewer - <?php echo htmlspecialchars($file_info['original_name']); ?></title>
     <style>
         body {
             margin: 0;
@@ -59,13 +89,20 @@ if (strpos($image_path, 'uploads/') !== 0 || !file_exists($image_path)) {
         .back-button:hover {
             background-color: rgba(0, 0, 0, 0.8);
         }
+        
+        .image-title {
+            margin-top: 10px;
+            font-family: Arial, sans-serif;
+        }
     </style>
 </head>
 <body>
-    <a href="<?php echo isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'index.php'; ?>" class="back-button">Back</a>
+    <a href="index.php" class="back-button">Back</a>
     
     <div class="image-container">
-        <img src="<?php echo htmlspecialchars($image_path); ?>" alt="Full size image">
+        <!-- Use secure_image.php to serve the image -->
+        <img src="secure_image.php?file=<?php echo htmlspecialchars($filename); ?>" alt="Full size image">
+        <div class="image-title"><?php echo htmlspecialchars($file_info['original_name']); ?></div>
     </div>
 </body>
 </html>
