@@ -29,7 +29,7 @@
             $_SESSION['logged_in'] = true;
             $_SESSION['email'] = $email;
         } else {
-            echo "Invalid email or password.";
+            echo "<p class='error-message'>Invalid email or password.</p>";
         }
     }
 ?>
